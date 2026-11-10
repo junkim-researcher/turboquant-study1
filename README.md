@@ -10,6 +10,7 @@
 |---|---|---|
 | 0단계 재현 검증 | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/junkim-researcher/turboquant-study1/blob/main/notebooks/exp0_colab.ipynb) | `notebooks/exp0_colab.ipynb` |
 | 1단계 내적 실험 | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/junkim-researcher/turboquant-study1/blob/main/notebooks/exp1_colab.ipynb) | `notebooks/exp1_colab.ipynb` |
+| 2단계 어텐션 실험 (**T4 GPU**) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/junkim-researcher/turboquant-study1/blob/main/notebooks/exp2_colab.ipynb) | `notebooks/exp2_colab.ipynb` |
 
 1. 위 배지를 눌러 Colab에서 열기
 2. **[런타임] → [모두 실행]**
@@ -26,6 +27,9 @@ turboquant-study/
 ├─ exp0_followup.py        0단계 [D] 경계 사례 재확인 (시드 2,000개)
 ├─ exp1_inner.py           1단계: 내적 실험 (편향, 흩어짐, 방식 비교 검정, 그림 1)
 ├─ summarize_exp1.py       1단계 판정 요약 + Claude 실행 결과와 대조
+├─ tq/capture.py           실제 모델의 어텐션 함수에 끼어들기 (RoPE 적용 후 Q, K, V)
+├─ exp2_attention.py       2단계: 어텐션 실험 (KL, top-1 일치율, 출력 오차, 로짓 기울기, 그림 2, 2-b, 3)
+├─ summarize_exp2.py       2단계 판정 요약 (H-b, H-c)
 ├─ summarize_exp0.py       0단계 판정 요약 + Claude 실행 결과와 대조
 ├─ tq/plotstyle.py         그래프 스타일, 한글 글꼴 자동 선택
 ├─ notebooks/              Colab용 올인원 노트북
@@ -123,5 +127,7 @@ D_b는 b비트 코드북의 기대 복원 제곱오차로, 논문의 반올림�
 3. 시드 30개만으로도 두 방식의 분산 차이는 압도적으로 유의했다(효과크기 d_z = 19~35). 이 단계에서는 '차이가 있느냐'보다 '예측과 맞느냐'가 핵심이다.
 
 ## 다음 단계
-- **2단계 (어텐션 단계):** 실제 소형 언어모델에서 Q, K, V를 뽑아 softmax를 거친 뒤에도 같은 순서가 유지되는지 확인 (가설 H-b, H-c)
+- **2단계 (어텐션 단계, 코드 준비 완료):** Qwen2.5-0.5B, WikiText-2 4,096토큰 구간 4개, 층 3개, b 3개 × n 3개(1,024 / 2,048 / 4,096), 시드 30개.
+  키만 압축(값은 원본), 지표는 KL 발산, top-1 일치율, 어텐션 출력 상대오차, 로짓 기울기. 가설 H-b, H-c 판정.
+  Hugging Face 접속이 필요해 Colab(T4 GPU) 실행 결과가 본 결과이며, Claude 환경에서는 무작위 소형 모델로 동작만 확인했다(`--smoke`).
 - **3단계 (모델 단계):** perplexity 비교 (가설 H-d)
