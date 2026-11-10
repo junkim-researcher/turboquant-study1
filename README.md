@@ -6,11 +6,14 @@
 
 ## ▶ Colab에서 바로 실행
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/junkim-researcher/turboquant-study1/blob/main/notebooks/exp0_colab.ipynb)  ← 0단계 재현 검증
+| 단계 | Colab | 저장 경로 |
+|---|---|---|
+| 0단계 재현 검증 | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/junkim-researcher/turboquant-study1/blob/main/notebooks/exp0_colab.ipynb) | `notebooks/exp0_colab.ipynb` |
+| 1단계 내적 실험 | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/junkim-researcher/turboquant-study1/blob/main/notebooks/exp1_colab.ipynb) | `notebooks/exp1_colab.ipynb` |
 
 1. 위 배지를 눌러 Colab에서 열기
 2. **[런타임] → [모두 실행]**
-3. **[파일] → [GitHub에 사본 저장]** (저장소 `junkim-researcher/turboquant-study1`, 경로 `notebooks/exp0_colab.ipynb`) → 실행 결과가 저장소에 함께 저장됨
+3. **[파일] → [GitHub에 사본 저장]** (저장소 `junkim-researcher/turboquant-study1`, 경로는 위 표 그대로) → 실행 결과가 저장소에 함께 저장됨
 
 ## 폴더 구조
 
@@ -21,6 +24,8 @@ turboquant-study/
 ├─ step0_predictions.py    STEP 0: 이론 예측표 계산
 ├─ exp0_verify.py          0단계(E0): 재현 검증 [A]~[E]
 ├─ exp0_followup.py        0단계 [D] 경계 사례 재확인 (시드 2,000개)
+├─ exp1_inner.py           1단계: 내적 실험 (편향, 흩어짐, 방식 비교 검정, 그림 1)
+├─ summarize_exp1.py       1단계 판정 요약 + Claude 실행 결과와 대조
 ├─ summarize_exp0.py       0단계 판정 요약 + Claude 실행 결과와 대조
 ├─ tq/plotstyle.py         그래프 스타일, 한글 글꼴 자동 선택
 ├─ notebooks/              Colab용 올인원 노트북
@@ -89,6 +94,34 @@ D_b는 b비트 코드북의 기대 복원 제곱오차로, 논문의 반올림�
 
 ---
 
+## 1단계 내적 실험 결과
+
+**판정: 가설 H-a 지지.** prod는 편향이 없고, mse는 참값보다 D_b 비율만큼 작게 추정하며, 편향을 뺀 흩어짐은 mse가 약 5.5배 작다.
+
+설계: d = 64, 128 × b = 2, 3, 4, 시드 30개(시드마다 회전행렬과 QJL 행렬을 새로 뽑음, 두 방식은 같은 회전을 공유하는 대응 설계).
+95% 신뢰구간은 t분포(자유도 29, 2.045), 방식 비교는 대응표본 t검정과 윌콕슨 부호순위 검정, 본페로니 보정(0.05/6).
+
+| d | b | mse 편향 (예측) | prod 편향 [95% CI] | mse 흩어짐×d (예측 D(1−D)) | prod 흩어짐×d (예측) | 배율 |
+|---|---|---|---|---|---|---|
+| 64 | 2 | −11.4% (−11.5%) | +0.0% [−0.1, +0.2] | 0.100 (0.101) | 0.550 (0.563) | 5.50 |
+| 64 | 3 | −3.3% (−3.3%) | +0.0% [−0.1, +0.1] | 0.031 (0.032) | 0.177 (0.180) | 5.63 |
+| 64 | 4 | −0.9% (−0.9%) | +0.0% [−0.0, +0.1] | 0.0088 (0.0090) | 0.052 (0.053) | 5.89 |
+| 128 | 2 | −11.6% (−11.6%) | −0.0% [−0.1, +0.1] | 0.104 (0.103) | 0.565 (0.567) | 5.45 |
+| 128 | 3 | −3.4% (−3.4%) | −0.0% [−0.1, +0.0] | 0.033 (0.033) | 0.182 (0.182) | 5.54 |
+| 128 | 4 | −0.9% (−0.9%) | −0.0% [−0.0, +0.0] | 0.0091 (0.0092) | 0.053 (0.053) | 5.79 |
+
+- 예측 일치(±10%) 24/24, prod 편향 신뢰구간에 0 포함 6/6, 방식 간 분산 차이 6/6 조건에서 유의 (모든 p < 10⁻⁸).
+
+### 실험하면서 알게 된 점 (계획과의 비교 재료)
+1. **처음에는 '무작위 쌍의 오차 분산'을 예측값 D(1−D)와 비교했는데, b=2에서 실측이 13~14% 크게 나왔다.**
+   원인: mse의 편향(−D × 실제 내적)은 실제 내적에 비례하는데, 무작위 쌍은 실제 내적이 쌍마다 달라서
+   편향이 쌍마다 다른 크기로 나타나고 이것이 분산처럼 섞인다. 그 크기가 D²이므로 실측은 D(1−D) + D² = D가 된다.
+   실제로 무작위 쌍 오차 분산은 예측표의 평균제곱오차 D와 정확히 맞았다.
+   그래서 예측값과 정의를 맞추려고 **같은 쌍을 고정하고 회전만 바꿔 흩어짐을 재는 측정(고정 수직 쌍)을 추가**했고, 이 값은 D(1−D)와 일치했다.
+   → **'편향'과 '분산'을 구분하려면 무엇에 대한 분산인지(무엇을 고정하고 무엇이 변하는지)를 먼저 정해야 한다.**
+2. 무작위 쌍 기준으로 보면 prod/mse 분산 배율은 4.8~5.7배로, 흩어짐 기준(5.5~5.9배)보다 b=2에서 약간 작다. mse의 편향이 분산 쪽으로 넘어갔기 때문이다.
+3. 시드 30개만으로도 두 방식의 분산 차이는 압도적으로 유의했다(효과크기 d_z = 19~35). 이 단계에서는 '차이가 있느냐'보다 '예측과 맞느냐'가 핵심이다.
+
 ## 다음 단계
-- **1단계 (내적 단계):** 합성 벡터, b=2/3/4, 시드 30개로 두 방식의 편향과 분산을 측정하고 예측표와 비교 (그림 1)
-- **2~3단계:** Colab 노트북 (팀 실행)
+- **2단계 (어텐션 단계):** 실제 소형 언어모델에서 Q, K, V를 뽑아 softmax를 거친 뒤에도 같은 순서가 유지되는지 확인 (가설 H-b, H-c)
+- **3단계 (모델 단계):** perplexity 비교 (가설 H-d)
