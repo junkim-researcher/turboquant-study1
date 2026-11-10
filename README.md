@@ -11,6 +11,7 @@
 | 0단계 재현 검증 | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/junkim-researcher/turboquant-study1/blob/main/notebooks/exp0_colab.ipynb) | `notebooks/exp0_colab.ipynb` |
 | 1단계 내적 실험 | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/junkim-researcher/turboquant-study1/blob/main/notebooks/exp1_colab.ipynb) | `notebooks/exp1_colab.ipynb` |
 | 2단계 어텐션 실험 (**T4 GPU**) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/junkim-researcher/turboquant-study1/blob/main/notebooks/exp2_colab.ipynb) | `notebooks/exp2_colab.ipynb` |
+| 3단계 perplexity + 키 진단 (**T4 GPU**) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/junkim-researcher/turboquant-study1/blob/main/notebooks/exp3_colab.ipynb) | `notebooks/exp3_colab.ipynb` |
 
 1. 위 배지를 눌러 Colab에서 열기
 2. **[런타임] → [모두 실행]**
@@ -30,6 +31,8 @@ turboquant-study/
 ├─ tq/capture.py           실제 모델의 어텐션 함수에 끼어들기 (RoPE 적용 후 Q, K, V)
 ├─ exp2_attention.py       2단계: 어텐션 실험 (KL, top-1 일치율, 출력 오차, 로짓 기울기, 그림 2, 2-b, 3)
 ├─ summarize_exp2.py       2단계 판정 요약 (H-b, H-c)
+├─ exp3_ppl.py             3단계: perplexity (B0, 값만, 키 mse + 값, 키 prod + 값) + 키 진단, 그림 4, 5
+├─ summarize_exp3.py       3단계 판정 요약 (H-d, 진단)
 ├─ summarize_exp0.py       0단계 판정 요약 + Claude 실행 결과와 대조
 ├─ tq/plotstyle.py         그래프 스타일, 한글 글꼴 자동 선택
 ├─ notebooks/              Colab용 올인원 노트북
@@ -126,8 +129,48 @@ D_b는 b비트 코드북의 기대 복원 제곱오차로, 논문의 반올림�
 2. 무작위 쌍 기준으로 보면 prod/mse 분산 배율은 4.8~5.7배로, 흩어짐 기준(5.5~5.9배)보다 b=2에서 약간 작다. mse의 편향이 분산 쪽으로 넘어갔기 때문이다.
 3. 시드 30개만으로도 두 방식의 분산 차이는 압도적으로 유의했다(효과크기 d_z = 19~35). 이 단계에서는 '차이가 있느냐'보다 '예측과 맞느냐'가 핵심이다.
 
+## 2단계 어텐션 실험 결과 (Colab T4, `notebooks/exp2_colab.ipynb`)
+
+**판정: 가설 H-b 지지(예상보다 강하게), 가설 H-c 지지 안 됨.**
+
+설계: Qwen2.5-0.5B(24층, 쿼리 헤드 14개, 키/값 헤드 2개, 헤드 차원 64), 층 4, 12, 22, WikiText-2 test 4,096토큰 구간 4개.
+RoPE 적용 후 키만 압축(값은 원본), 문맥 앞 n개 중 마지막 64개 쿼리, 시드 30개, 본페로니(0.05/9).
+끼어들기 검사: 기본 구현과의 출력 최대 차이 9.1×10⁻⁵ (float32 반올림 수준).
+
+| b | n | 출력 상대오차 mse / prod | KL 발산 mse / prod | top-1 일치율 mse / prod |
+|---|---|---|---|---|
+| 2 | 1,024 | 0.693 / 1.441 | 0.865 / 3.495 | 33.2% / 11.2% |
+| 2 | 4,096 | 0.663 / 1.366 | 0.968 / 3.939 | 31.8% / 9.5% |
+| 3 | 1,024 | 0.374 / 0.893 | 0.274 / 1.366 | 57.7% / 26.6% |
+| 3 | 4,096 | 0.358 / 0.849 | 0.300 / 1.484 | 56.8% / 25.7% |
+| 4 | 1,024 | 0.193 / 0.472 | 0.079 / 0.426 | 75.5% / 51.3% |
+| 4 | 4,096 | 0.185 / 0.450 | 0.086 / 0.460 | 74.8% / 50.5% |
+
+- 9개 조건(b 3개 × n 3개) × 지표 3개 모두 mse 승, 모두 본페로니 보정 후 유의. prod의 출력 오차는 mse의 2.1~2.4배, KL은 4~5배.
+- **로짓 기울기(압축 점수 / 원본 점수)**: mse 0.8864, 0.9665, 0.9908 (예측 1 − D = 0.8855, 0.9666, 0.9909), prod 0.9996, 1.0013, 1.0001 (예측 1).
+  1단계에서 확인한 편향이 실제 모델의 어텐션 점수에서도 그대로 나타났다.
+- **H-c**: n이 2배가 될 때 top-1 격차(mse − prod)의 변화는 +0.02~0.13%p로 0과 구별되지 않음(p = 0.65, 0.94, 0.76).
+- 원본 어텐션의 성격: 첫 토큰이 1등인 비율 36~38%(어텐션 싱크), 1등 키의 평균 가중치 약 26%, 엔트로피 3.8~4.2.
+
+### 해석
+- **왜 mse가 이겼나:** mse의 편향은 모든 점수를 같은 비율(1 − D)로 줄인다. softmax 입장에서는 온도를 살짝 올린 것과 같아서 키 사이의 순위는 거의 유지되고 분포만 조금 평평해진다.
+  prod의 잡음은 키마다 독립적으로 더해져 순위 자체를 뒤섞는다. 그래서 top-1 일치율에서 차이가 가장 크다.
+  → **내적 단계의 장점인 '불편성'은 softmax를 거친 뒤의 정확도를 보장하지 않는다.** 이 모델과 설정에서는 '편향이 작고 일정한 쪽'이 '평균은 맞지만 흩어지는 쪽'보다 훨씬 유리했다.
+- **b=2에서 뒤집힐 것이라는 예상이 빗나간 이유:** 점수 11.6% 축소(온도 상승)보다 prod의 흩어짐(mse의 약 5.5배)이 훨씬 해로웠다.
+- **H-c가 지지되지 않은 이유(추정):** 1등은 소수의 압도적인 키(특히 첫 토큰)가 차지하는 경우가 많아, 키 개수가 늘어도 1등 경쟁 구도가 크게 바뀌지 않는 것으로 보인다. 계획 단계에서 예상하지 못한 변수(어텐션 싱크).
+
+### 짚고 넘어갈 점: 오차의 절대 크기
+이긴 mse도 4비트에서 출력 상대오차 약 18%, top-1 일치율 약 75%로, 논문의 "3.5비트에서 품질 거의 유지"와 비교하면 크다. 원인 후보:
+1. 첫 토큰(어텐션 싱크)의 값 벡터가 작아 출력 o가 작아지면 *상대*오차가 부풀 수 있다.
+2. Qwen은 키 계산에 편향(bias) 항이 있어 키 벡터의 길이가 크고 공통 성분이 많을 수 있다. TurboQuant의 오차는 벡터 길이에 비례한다.
+3. 논문은 이상치 채널을 따로 처리한 혼합 비트 설정이었고, 다른 모델에서 최종 과제 성능을 측정했다.
+
+→ 3단계에서 perplexity와 함께 층별 키 길이, 공통 성분 비율, 이상치 채널, 첫 토큰 값 크기를 진단한다.
+
+**개선 아이디어(후속):** 모든 키에서 같은 벡터 c를 빼도 각 쿼리의 점수가 모두 쿼리와 c의 내적만큼 똑같이 줄어 softmax 결과는 수학적으로 완전히 같다.
+따라서 키의 평균을 빼고 압축하면 결과를 바꾸지 않고 압축 오차만 줄일 수 있다(원인 2가 맞다면 효과가 클 것).
+
 ## 다음 단계
-- **2단계 (어텐션 단계, 코드 준비 완료):** Qwen2.5-0.5B, WikiText-2 4,096토큰 구간 4개, 층 3개, b 3개 × n 3개(1,024 / 2,048 / 4,096), 시드 30개.
-  키만 압축(값은 원본), 지표는 KL 발산, top-1 일치율, 어텐션 출력 상대오차, 로짓 기울기. 가설 H-b, H-c 판정.
-  Hugging Face 접속이 필요해 Colab(T4 GPU) 실행 결과가 본 결과이며, Claude 환경에서는 무작위 소형 모델로 동작만 확인했다(`--smoke`).
-- **3단계 (모델 단계):** perplexity 비교 (가설 H-d)
+- **3단계 (모델 단계, 코드 준비 완료):** Qwen2.5-0.5B 모든 층의 어텐션에 압축을 끼워 넣고 WikiText-2 1,024토큰 조각 40개로 perplexity 측정.
+  설정: B0(원본), 값만 압축, 키 mse + 값, 키 prod + 값 (값은 모두 mse b비트) × b = 2, 3, 4, 시드 5개.
+  조각 단위 대응 비교(본페로니 0.05/3)로 가설 H-d 판정. 함께 24개 층의 키 길이, 공통 성분 비율, 이상치 채널, 첫 토큰 값 크기를 진단.
