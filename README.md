@@ -12,6 +12,7 @@
 | 1단계 내적 실험 | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/junkim-researcher/turboquant-study1/blob/main/notebooks/exp1_colab.ipynb) | `notebooks/exp1_colab.ipynb` |
 | 2단계 어텐션 실험 (**T4 GPU**) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/junkim-researcher/turboquant-study1/blob/main/notebooks/exp2_colab.ipynb) | `notebooks/exp2_colab.ipynb` |
 | 3단계 perplexity + 키 진단 (**T4 GPU**) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/junkim-researcher/turboquant-study1/blob/main/notebooks/exp3_colab.ipynb) | `notebooks/exp3_colab.ipynb` |
+| 4단계 키 평균 빼기 (**T4 GPU**) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/junkim-researcher/turboquant-study1/blob/main/notebooks/exp4_colab.ipynb) | `notebooks/exp4_colab.ipynb` |
 
 1. 위 배지를 눌러 Colab에서 열기
 2. **[런타임] → [모두 실행]**
@@ -33,6 +34,8 @@ turboquant-study/
 ├─ summarize_exp2.py       2단계 판정 요약 (H-b, H-c)
 ├─ exp3_ppl.py             3단계: perplexity (B0, 값만, 키 mse + 값, 키 prod + 값) + 키 진단, 그림 4, 5
 ├─ summarize_exp3.py       3단계 판정 요약 (H-d, 진단)
+├─ exp4_centered.py        4단계: 키 평균 빼기 k̂ = c + Q(k − c), 그림 6, 7
+├─ summarize_exp4.py       4단계 판정 요약
 ├─ summarize_exp0.py       0단계 판정 요약 + Claude 실행 결과와 대조
 ├─ tq/plotstyle.py         그래프 스타일, 한글 글꼴 자동 선택
 ├─ notebooks/              Colab용 올인원 노트북
@@ -170,7 +173,40 @@ RoPE 적용 후 키만 압축(값은 원본), 문맥 앞 n개 중 마지막 64�
 **개선 아이디어(후속):** 모든 키에서 같은 벡터 c를 빼도 각 쿼리의 점수가 모두 쿼리와 c의 내적만큼 똑같이 줄어 softmax 결과는 수학적으로 완전히 같다.
 따라서 키의 평균을 빼고 압축하면 결과를 바꾸지 않고 압축 오차만 줄일 수 있다(원인 2가 맞다면 효과가 클 것).
 
+## 3단계 모델 실험 결과 (Colab T4, `notebooks/exp3_colab.ipynb`, 원자료 `results/exp3_results.json`)
+
+**판정: 가설 H-d 지지. 단, 키를 압축하면 두 방식 모두 모델 성능이 크게 무너진다(예상하지 못한 결과).**
+
+설계: Qwen2.5-0.5B 24개 층 전부의 어텐션에 '압축 → 복원'을 끼워 넣음(RoPE 적용 후). WikiText-2 test 1,024토큰 조각 40개, 시드 5개.
+값은 세 설정 모두 mse b비트로 똑같이 압축. 조각 단위 대응 비교(본페로니 0.05/3).
+
+| b | 값만 압축 | 키 mse + 값 | 키 prod + 값 |
+|---|---|---|---|
+| 원본 B0 | 13.23 | | |
+| 2 | 15.27 (+15.4%) | 1,203 (약 91배) | 8,714 (약 659배) |
+| 3 | 13.59 (+2.8%) | 337 (약 25배) | 2,411 (약 182배) |
+| 4 | 13.31 (+0.6%) | 145 (약 11배) | 598 (약 45배) |
+
+- **H-d:** 토큰당 손실 차이(prod − mse) = +1.98, +1.97, +1.42 (b = 2, 3, 4), 모두 유의(p < 10⁻¹⁹). 2단계와 같은 방향.
+- **값 압축은 거의 문제가 없다**(4비트에서 +0.6%). 성능 붕괴의 원인은 **키 압축**이다.
+
+### 원인 진단: Qwen의 키는 '모두 같은 방향을 가리키는 큰 벡터'
+| 층 | 키 길이 | 공통 성분 비율 | 이상치 채널 (최대 / 중앙값) |
+|---|---|---|---|
+| 0 | 259 | 96% | 21배 |
+| 1 | 115 | 84% | 38배 |
+| 2 | 90 | 97% | 22배 |
+| 8 | 150 | 65% | 58배 |
+| 그 밖의 층 | 약 15~28 | 36~72% | 3~10배 |
+| 24개 층 평균 | | 58% | 10배 |
+
+- 공통 성분 비율 = ||키들의 평균||² / 평균(||키||²). 0번 층은 키 길이의 96%(제곱 기준)가 모든 키가 공유하는 성분이다.
+- 어텐션은 키 사이의 *차이*만 쓰는데(공통 성분은 softmax에서 상쇄), TurboQuant의 오차는 벡터 *전체 길이*에 비례한다.
+  → 쓸모없는 공통 성분 때문에 정작 중요한 차이가 압축 오차에 묻히고, 앞쪽 층의 오차가 24개 층을 거치며 쌓인다.
+- 첫 토큰의 값 벡터 크기는 중간 층들에서 다른 토큰의 약 0.2~0.4배 → 2단계의 *상대* 출력 오차를 부풀린 요인(원인 후보 1)도 확인.
+- 2단계에서 세운 원인 후보 2(키 공통 성분)가 주원인으로 확인됨 → **4단계: 키 평균 빼기**.
+
 ## 다음 단계
-- **3단계 (모델 단계, 코드 준비 완료):** Qwen2.5-0.5B 모든 층의 어텐션에 압축을 끼워 넣고 WikiText-2 1,024토큰 조각 40개로 perplexity 측정.
-  설정: B0(원본), 값만 압축, 키 mse + 값, 키 prod + 값 (값은 모두 mse b비트) × b = 2, 3, 4, 시드 5개.
-  조각 단위 대응 비교(본페로니 0.05/3)로 가설 H-d 판정. 함께 24개 층의 키 길이, 공통 성분 비율, 이상치 채널, 첫 토큰 값 크기를 진단.
+- **4단계 (확장, 팀 개선안): 키 평균 빼기.** 별도 텍스트(WikiText-2 train)에서 층과 헤드별 키 평균 c를 미리 구하고,
+  k̂ = c + Q(k − c)로 압축한다(평균은 헤드마다 한 번만 저장). 어텐션 결과는 이론상 같고 압축할 벡터만 짧아진다.
+  평균 뺀 / 안 뺀 × mse / prod × b = 2, 3, 4를 같은 조각과 시드로 대응 비교.

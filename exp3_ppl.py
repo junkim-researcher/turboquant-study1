@@ -59,6 +59,7 @@ def get_args():
     ap.add_argument("--chunks", type=int, default=40)
     ap.add_argument("--chunk-len", type=int, default=1024)
     ap.add_argument("--smoke", action="store_true")
+    ap.add_argument("--replot", action="store_true", help="저장된 결과로 그림만 다시 그리기")
     a = ap.parse_args()
     if a.smoke:
         a.seeds, a.chunks, a.chunk_len = 2, 6, 256
@@ -183,6 +184,7 @@ def paired(a, b, n_cond):
 
 # ------------------------------------------------------------------ 그림
 def make_figures(res, prefix, stage2_layers):
+    """그림 4, 5. (results/exp3_results.json에서 다시 그리기: python exp3_ppl.py --replot)"""
     ppl0 = res["B0"]["ppl"]
     fig, ax = plt.subplots(figsize=(7.6, 4.4), dpi=200)
     for key, lab, c, off in (("v_only", "값만 압축", C_VONLY, -0.18), ("k_mse", "키 mse + 값", C_MSE, 0.0),
@@ -196,9 +198,14 @@ def make_figures(res, prefix, stage2_layers):
     ax.axhline(ppl0, color=INK, lw=1.2, ls="--")
     ax.text(4.32, ppl0, f"원본 B0\n{ppl0:.2f}", va="center", fontsize=8.5, color=INK2)
     ax.set_yscale("log")
-    fmt = matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:,.4g}")
-    ax.yaxis.set_major_formatter(fmt); ax.yaxis.set_minor_formatter(fmt)
-    ax.tick_params(axis="y", which="minor", labelsize=8)
+    fmt = matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:,.0f}" if v >= 100 else f"{v:.4g}")
+    ax.yaxis.set_major_formatter(fmt)
+    lo_, hi_ = ax.get_ylim()
+    if hi_ / lo_ < 10:            # 범위가 좁을 때만 작은 눈금에도 숫자 표시 (넓으면 겹침)
+        ax.yaxis.set_minor_formatter(fmt)
+        ax.tick_params(axis="y", which="minor", labelsize=8)
+    else:
+        ax.yaxis.set_minor_formatter(matplotlib.ticker.NullFormatter())
     ax.set_xticks(BITS); ax.set_xlim(1.6, 4.6); ax.set_xlabel("비트폭 b")
     ax.set_ylabel("perplexity (낮을수록 좋음, 로그 눈금)")
     ax.legend(frameon=False, fontsize=9, loc="upper right")
@@ -229,6 +236,11 @@ def make_figures(res, prefix, stage2_layers):
 # ------------------------------------------------------------------ 메인
 def main():
     a = get_args()
+    if a.replot:
+        out = json.load(open("results/exp3_results.json", encoding="utf-8"))
+        make_figures(out["results"], "", out["design"]["stage2_layers"])
+        print("그림 4, 5를 다시 그렸습니다.")
+        return
     t0 = time.time()
     device = "cuda" if torch.cuda.is_available() else "cpu"
     os.makedirs("results", exist_ok=True); os.makedirs("figures", exist_ok=True)
