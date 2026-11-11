@@ -1,0 +1,456 @@
+{
+ "model_dims": {
+  "n_layers": 24,
+  "n_heads": 14,
+  "n_kv_heads": 2,
+  "head_dim": 64
+ },
+ "n_ctx": 4096,
+ "storage": {
+  "fp16": {
+   "bytes": 50331648.0,
+   "MB": 48.0,
+   "ratio_vs_fp16": 1.0
+  },
+  "mse_b2": {
+   "bytes": 7077888.0,
+   "MB": 6.75,
+   "ratio_vs_fp16": 7.111111111111111
+  },
+  "prod_b2": {
+   "bytes": 7471104.0,
+   "MB": 7.125,
+   "ratio_vs_fp16": 6.7368421052631575
+  },
+  "mse_centered_b2": {
+   "bytes": 7084032.0,
+   "MB": 6.755859375,
+   "ratio_vs_fp16": 7.104943625325238
+  },
+  "mse_b3": {
+   "bytes": 10223616.0,
+   "MB": 9.75,
+   "ratio_vs_fp16": 4.923076923076923
+  },
+  "prod_b3": {
+   "bytes": 10616832.0,
+   "MB": 10.125,
+   "ratio_vs_fp16": 4.7407407407407405
+  },
+  "mse_centered_b3": {
+   "bytes": 10229760.0,
+   "MB": 9.755859375,
+   "ratio_vs_fp16": 4.92012012012012
+  },
+  "mse_b4": {
+   "bytes": 13369344.0,
+   "MB": 12.75,
+   "ratio_vs_fp16": 3.764705882352941
+  },
+  "prod_b4": {
+   "bytes": 13762560.0,
+   "MB": 13.125,
+   "ratio_vs_fp16": 3.657142857142857
+  },
+  "mse_centered_b4": {
+   "bytes": 13375488.0,
+   "MB": 12.755859375,
+   "ratio_vs_fp16": 3.7629765732659624
+  }
+ },
+ "pack_check_one_head": [
+  {
+   "bits": 2,
+   "kind": "fp16",
+   "formula_bytes": 524288.0,
+   "packed_bytes": 524288,
+   "match": true
+  },
+  {
+   "bits": 2,
+   "kind": "mse",
+   "formula_bytes": 73728.0,
+   "packed_bytes": 73728,
+   "match": true
+  },
+  {
+   "bits": 2,
+   "kind": "prod",
+   "formula_bytes": 81920.0,
+   "packed_bytes": 81920,
+   "match": true
+  },
+  {
+   "bits": 3,
+   "kind": "fp16",
+   "formula_bytes": 524288.0,
+   "packed_bytes": 524288,
+   "match": true
+  },
+  {
+   "bits": 3,
+   "kind": "mse",
+   "formula_bytes": 106496.0,
+   "packed_bytes": 106496,
+   "match": true
+  },
+  {
+   "bits": 3,
+   "kind": "prod",
+   "formula_bytes": 114688.0,
+   "packed_bytes": 114688,
+   "match": true
+  },
+  {
+   "bits": 4,
+   "kind": "fp16",
+   "formula_bytes": 524288.0,
+   "packed_bytes": 524288,
+   "match": true
+  },
+  {
+   "bits": 4,
+   "kind": "mse",
+   "formula_bytes": 139264.0,
+   "packed_bytes": 139264,
+   "match": true
+  },
+  {
+   "bits": 4,
+   "kind": "prod",
+   "formula_bytes": 147456.0,
+   "packed_bytes": 147456,
+   "match": true
+  }
+ ],
+ "op_count_verification_small": [
+  {
+   "kind": "mse",
+   "bits": 1,
+   "method": "dequant",
+   "counted_mul": 480,
+   "formula_mul": 480,
+   "counted_add": 378,
+   "formula_add": 378,
+   "count_match": true,
+   "max_abs_diff_vs_tq": 3.552713678800501e-15
+  },
+  {
+   "kind": "mse",
+   "bits": 1,
+   "method": "rotate_lut",
+   "counted_mul": 86,
+   "formula_mul": 86,
+   "counted_add": 98,
+   "formula_add": 98,
+   "count_match": true,
+   "max_abs_diff_vs_tq": 4.440892098500626e-15
+  },
+  {
+   "kind": "mse",
+   "bits": 2,
+   "method": "dequant",
+   "counted_mul": 480,
+   "formula_mul": 480,
+   "counted_add": 378,
+   "formula_add": 378,
+   "count_match": true,
+   "max_abs_diff_vs_tq": 7.105427357601002e-15
+  },
+  {
+   "kind": "mse",
+   "bits": 2,
+   "method": "rotate_lut",
+   "counted_mul": 102,
+   "formula_mul": 102,
+   "counted_add": 98,
+   "formula_add": 98,
+   "count_match": true,
+   "max_abs_diff_vs_tq": 3.552713678800501e-15
+  },
+  {
+   "kind": "mse",
+   "bits": 3,
+   "method": "dequant",
+   "counted_mul": 480,
+   "formula_mul": 480,
+   "counted_add": 378,
+   "formula_add": 378,
+   "count_match": true,
+   "max_abs_diff_vs_tq": 3.552713678800501e-15
+  },
+  {
+   "kind": "mse",
+   "bits": 3,
+   "method": "rotate_lut",
+   "counted_mul": 134,
+   "formula_mul": 134,
+   "counted_add": 98,
+   "formula_add": 98,
+   "count_match": true,
+   "max_abs_diff_vs_tq": 4.440892098500626e-15
+  },
+  {
+   "kind": "mse",
+   "bits": 4,
+   "method": "dequant",
+   "counted_mul": 480,
+   "formula_mul": 480,
+   "counted_add": 378,
+   "formula_add": 378,
+   "count_match": true,
+   "max_abs_diff_vs_tq": 3.552713678800501e-15
+  },
+  {
+   "kind": "mse",
+   "bits": 4,
+   "method": "rotate_lut",
+   "counted_mul": 198,
+   "formula_mul": 198,
+   "counted_add": 98,
+   "formula_add": 98,
+   "count_match": true,
+   "max_abs_diff_vs_tq": 7.105427357601002e-15
+  },
+  {
+   "kind": "prod",
+   "bits": 1,
+   "method": "dequant",
+   "counted_mul": 144,
+   "formula_mul": 144,
+   "counted_add": 378,
+   "formula_add": 378,
+   "count_match": true,
+   "max_abs_diff_vs_tq": 3.552713678800501e-15
+  },
+  {
+   "kind": "prod",
+   "bits": 1,
+   "method": "rotate_lut",
+   "counted_mul": 84,
+   "formula_mul": 84,
+   "counted_add": 98,
+   "formula_add": 98,
+   "count_match": true,
+   "max_abs_diff_vs_tq": 3.552713678800501e-15
+  },
+  {
+   "kind": "prod",
+   "bits": 2,
+   "method": "dequant",
+   "counted_mul": 528,
+   "formula_mul": 528,
+   "counted_add": 762,
+   "formula_add": 762,
+   "count_match": true,
+   "max_abs_diff_vs_tq": 1.7763568394002505e-15
+  },
+  {
+   "kind": "prod",
+   "bits": 2,
+   "method": "rotate_lut",
+   "counted_mul": 164,
+   "formula_mul": 164,
+   "counted_add": 202,
+   "formula_add": 202,
+   "count_match": true,
+   "max_abs_diff_vs_tq": 2.220446049250313e-15
+  },
+  {
+   "kind": "prod",
+   "bits": 3,
+   "method": "dequant",
+   "counted_mul": 528,
+   "formula_mul": 528,
+   "counted_add": 762,
+   "formula_add": 762,
+   "count_match": true,
+   "max_abs_diff_vs_tq": 3.552713678800501e-15
+  },
+  {
+   "kind": "prod",
+   "bits": 3,
+   "method": "rotate_lut",
+   "counted_mul": 180,
+   "formula_mul": 180,
+   "counted_add": 202,
+   "formula_add": 202,
+   "count_match": true,
+   "max_abs_diff_vs_tq": 3.774758283725532e-15
+  },
+  {
+   "kind": "prod",
+   "bits": 4,
+   "method": "dequant",
+   "counted_mul": 528,
+   "formula_mul": 528,
+   "counted_add": 762,
+   "formula_add": 762,
+   "count_match": true,
+   "max_abs_diff_vs_tq": 3.552713678800501e-15
+  },
+  {
+   "kind": "prod",
+   "bits": 4,
+   "method": "rotate_lut",
+   "counted_mul": 212,
+   "formula_mul": 212,
+   "counted_add": 202,
+   "formula_add": 202,
+   "count_match": true,
+   "max_abs_diff_vs_tq": 7.105427357601002e-15
+  }
+ ],
+ "score_ops_per_token": [
+  {
+   "bits": 2,
+   "key": "fp16",
+   "method": "-",
+   "mul_per_token": 88080384,
+   "add_per_token": 86704128
+  },
+  {
+   "bits": 2,
+   "key": "mse",
+   "method": "dequant",
+   "mul_per_token": 905969664,
+   "add_per_token": 879427584
+  },
+  {
+   "bits": 2,
+   "key": "mse",
+   "method": "rotate_lut",
+   "mul_per_token": 2838528,
+   "add_per_token": 88058880
+  },
+  {
+   "bits": 2,
+   "key": "prod",
+   "method": "dequant",
+   "mul_per_token": 918552576,
+   "add_per_token": 1684733952
+  },
+  {
+   "bits": 2,
+   "key": "prod",
+   "method": "rotate_lut",
+   "mul_per_token": 5569536,
+   "add_per_token": 177494016
+  },
+  {
+   "bits": 3,
+   "key": "fp16",
+   "method": "-",
+   "mul_per_token": 88080384,
+   "add_per_token": 86704128
+  },
+  {
+   "bits": 3,
+   "key": "mse",
+   "method": "dequant",
+   "mul_per_token": 905969664,
+   "add_per_token": 879427584
+  },
+  {
+   "bits": 3,
+   "key": "mse",
+   "method": "rotate_lut",
+   "mul_per_token": 2924544,
+   "add_per_token": 88058880
+  },
+  {
+   "bits": 3,
+   "key": "prod",
+   "method": "dequant",
+   "mul_per_token": 918552576,
+   "add_per_token": 1684733952
+  },
+  {
+   "bits": 3,
+   "key": "prod",
+   "method": "rotate_lut",
+   "mul_per_token": 5612544,
+   "add_per_token": 177494016
+  },
+  {
+   "bits": 4,
+   "key": "fp16",
+   "method": "-",
+   "mul_per_token": 88080384,
+   "add_per_token": 86704128
+  },
+  {
+   "bits": 4,
+   "key": "mse",
+   "method": "dequant",
+   "mul_per_token": 905969664,
+   "add_per_token": 879427584
+  },
+  {
+   "bits": 4,
+   "key": "mse",
+   "method": "rotate_lut",
+   "mul_per_token": 3096576,
+   "add_per_token": 88058880
+  },
+  {
+   "bits": 4,
+   "key": "prod",
+   "method": "dequant",
+   "mul_per_token": 918552576,
+   "add_per_token": 1684733952
+  },
+  {
+   "bits": 4,
+   "key": "prod",
+   "method": "rotate_lut",
+   "mul_per_token": 5698560,
+   "add_per_token": 177494016
+  }
+ ],
+ "compress_ops_per_token": [
+  {
+   "bits": 2,
+   "key": "mse",
+   "mul_per_token": 199680,
+   "add_per_token": 196560,
+   "cmp_per_token": 6144
+  },
+  {
+   "bits": 2,
+   "key": "prod",
+   "mul_per_token": 595968,
+   "add_per_token": 589728,
+   "cmp_per_token": 6144
+  },
+  {
+   "bits": 3,
+   "key": "mse",
+   "mul_per_token": 199680,
+   "add_per_token": 196560,
+   "cmp_per_token": 9216
+  },
+  {
+   "bits": 3,
+   "key": "prod",
+   "mul_per_token": 595968,
+   "add_per_token": 589728,
+   "cmp_per_token": 9216
+  },
+  {
+   "bits": 4,
+   "key": "mse",
+   "mul_per_token": 199680,
+   "add_per_token": 196560,
+   "cmp_per_token": 12288
+  },
+  {
+   "bits": 4,
+   "key": "prod",
+   "mul_per_token": 595968,
+   "add_per_token": 589728,
+   "cmp_per_token": 12288
+  }
+ ],
+ "note": "연산 수는 식으로 계산했고, d=8, n=6에서 세기용 구현으로 직접 세어 식과 일치함을 확인. 실제 시간은 재지 않음."
+}
